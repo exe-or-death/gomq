@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/exe-or-death/gomq/transport"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq/transport"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 // SocketDriver represents a type of socket in a communitcation pattern.

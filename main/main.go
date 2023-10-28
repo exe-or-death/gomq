@@ -5,17 +5,18 @@ import (
 	"log"
 	"time"
 
-	"github.com/exe-or-death/gomq"
-	_ "github.com/exe-or-death/gomq/transport/ipc"
-	_ "github.com/exe-or-death/gomq/types/pull"
-	_ "github.com/exe-or-death/gomq/types/push"
-	_ "github.com/exe-or-death/gomq/zmtp/null"
 	"github.com/pebbe/zmq4"
+	"github.com/workspace-9/gomq"
+	_ "github.com/workspace-9/gomq/transport/ipc"
+	_ "github.com/workspace-9/gomq/types/pull"
+	_ "github.com/workspace-9/gomq/types/push"
+	_ "github.com/workspace-9/gomq/zmtp/null"
 )
 
 func main() {
 	go runPushSock()
-	runPebbePullSock()
+	time.Sleep(time.Second)
+	runPullSock()
 }
 
 func runPullSock() {

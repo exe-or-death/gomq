@@ -1,5 +1,4 @@
 # gomq
-[![Go Reference](https://pkg.go.dev/badge/github.com/exe-or-death/gomq.svg)](https://pkg.go.dev/github.com/exe-or-death/gomq)
+[![Go Reference](https://pkg.go.dev/badge/github.com/workspace-9/gomq.svg)](https://pkg.go.dev/github.com/workspace-9/gomq)
 
-
-Golang Implementation of ZMQ.
+Sockets with super-powers

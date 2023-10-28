@@ -1,8 +1,8 @@
 package null
 
 import (
-	"github.com/exe-or-death/gomq"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 func init() {

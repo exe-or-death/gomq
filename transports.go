@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/exe-or-death/gomq/transport"
+	"github.com/workspace-9/gomq/transport"
 )
 
 // TransportFactory creates a transport given a list of key value pairs.

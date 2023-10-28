@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/exe-or-death/gomq"
-	"github.com/exe-or-death/gomq/transport"
+	"github.com/workspace-9/gomq"
+	"github.com/workspace-9/gomq/transport"
 )
 
 func init() {

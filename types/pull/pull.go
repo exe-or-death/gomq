@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/exe-or-death/gomq"
-	"github.com/exe-or-death/gomq/socketutil"
-	"github.com/exe-or-death/gomq/transport"
-	"github.com/exe-or-death/gomq/types"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq"
+	"github.com/workspace-9/gomq/socketutil"
+	"github.com/workspace-9/gomq/transport"
+	"github.com/workspace-9/gomq/types"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 // Pull implements the zmq pull socket.

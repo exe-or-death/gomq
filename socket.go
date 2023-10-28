@@ -3,7 +3,7 @@ package gomq
 import (
 	"net/url"
 
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 type Socket struct {

@@ -5,9 +5,9 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/exe-or-death/gomq"
-	"github.com/exe-or-death/gomq/transport"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq"
+	"github.com/workspace-9/gomq/transport"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 type BindDriver struct {

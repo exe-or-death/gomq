@@ -2,7 +2,7 @@ package null
 
 import (
 	"fmt"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq/zmtp"
 	"net"
 )
 

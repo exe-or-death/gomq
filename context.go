@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/exe-or-death/gomq/transport"
+	"github.com/workspace-9/gomq/transport"
 )
 
 type Context struct {

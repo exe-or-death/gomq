@@ -1,4 +1,4 @@
-module github.com/exe-or-death/gomq
+module github.com/workspace-9/gomq
 
 go 1.21.1
 

@@ -3,9 +3,9 @@ package pull
 import (
 	"context"
 
-	"github.com/exe-or-death/gomq"
-	"github.com/exe-or-death/gomq/socketutil"
-	"github.com/exe-or-death/gomq/zmtp"
+	"github.com/workspace-9/gomq"
+	"github.com/workspace-9/gomq/socketutil"
+	"github.com/workspace-9/gomq/zmtp"
 )
 
 func init() {
