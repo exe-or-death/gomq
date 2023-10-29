@@ -3,7 +3,7 @@ package trie_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/exe-or-death/gomq/types/pub/trie"
+	"github.com/workspace-9/gomq/types/pub/trie"
 	"testing"
 )
 
