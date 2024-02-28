@@ -47,7 +47,7 @@ func (p *Pull) Connect(tp transport.Transport, url *url.URL) error {
 			return HandleSock(ctx, s, queue)
 		},
 		p.Meta,
-		p.MetaHandler,
+		p,
 	)
 	fatal, err := driver.TryConnect()
 	if err != nil && fatal {
@@ -95,7 +95,7 @@ func (p *Pull) Bind(tp transport.Transport, url *url.URL) error {
 		},
 		p.EventBus,
 		p.Meta,
-		p.MetaHandler,
+		p,
 	)
 	if err := driver.TryBind(); err != nil {
 		return err
@@ -161,7 +161,7 @@ func (p *Pull) Meta() zmtp.Metadata {
 	return meta
 }
 
-func (p *Pull) MetaHandler(meta zmtp.Metadata) error {
+func (p *Pull) VerifyMetadata(meta zmtp.Metadata) error {
 	var err error
 	meta.Properties(func(name string, value string) {
 		if name == "Socket-Type" && err == nil {

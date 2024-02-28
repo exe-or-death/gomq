@@ -19,7 +19,7 @@ type BindDriver struct {
 	handler     SocketHandler
 	eventBus    gomq.EventBus
 	meta        MetadataProvider
-	metaHandler MetadataHandler
+	metaHandler zmtp.MetadataVerifier
 	ln          net.Listener
 	done        chan struct{}
 }
@@ -42,7 +42,7 @@ func (b *BindDriver) Setup(
 	handler SocketHandler,
 	eventBus gomq.EventBus,
 	meta MetadataProvider,
-	metaHandler MetadataHandler,
+	metaHandler zmtp.MetadataVerifier,
 ) {
 	derived, cancel := context.WithCancel(ctx)
 	b.ctx = derived
@@ -142,18 +142,8 @@ func (b *BindDriver) handleConn(conn net.Conn) {
 		return
 	}
 
-	sock, meta, err := b.mechanism.Handshake(conn, b.meta())
+	sock, _, err := b.mechanism.Handshake(conn, b.meta(), b.metaHandler)
 	if err != nil {
-		b.eventBus.Post(gomq.Event{
-			gomq.EventTypeFailedHandshake,
-			transport.BuildURL(conn.LocalAddr(), b.transport),
-			transport.BuildURL(conn.RemoteAddr(), b.transport),
-			err.Error(),
-		})
-		return
-	}
-
-	if err := b.metaHandler(meta); err != nil {
 		b.eventBus.Post(gomq.Event{
 			gomq.EventTypeFailedHandshake,
 			transport.BuildURL(conn.LocalAddr(), b.transport),

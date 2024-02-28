@@ -45,18 +45,18 @@ func (bothServers) Error() string {
 var ErrBothServers bothServers
 
 // Handshake performs a null mechanism handshake.
-func (c *Curve) Handshake(conn net.Conn, meta zmtp.Metadata) (
+func (c *Curve) Handshake(conn net.Conn, meta zmtp.Metadata, verifier zmtp.MetadataVerifier) (
 	zmtp.Socket,
 	zmtp.Metadata,
 	error,
 ) {
 	if serv := c.serv; serv != nil {
-		return serv.Handshake(conn, meta)
+		return serv.Handshake(conn, meta, verifier)
 	}
 
 	if c.cli == nil {
 		c.cli = &CurveClient{}
 	}
 
-	return c.cli.Handshake(conn, meta)
+	return c.cli.Handshake(conn, meta, verifier)
 }
