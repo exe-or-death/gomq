@@ -9,7 +9,7 @@ import (
 type Null struct{}
 
 func (Null) Name() string {
-	return "NULL"
+	return MechName
 }
 
 func (Null) Server() bool {
@@ -34,7 +34,7 @@ func (cannotBeServer) Error() string {
 var ErrCannotBeServer cannotBeServer
 
 // Handshake performs a null mechanism handshake.
-func (Null) Handshake(conn net.Conn, meta zmtp.Metadata) (
+func (Null) Handshake(conn net.Conn, meta zmtp.Metadata, verifier zmtp.MetadataVerifier) (
 	zmtp.Socket,
 	zmtp.Metadata,
 	error,
@@ -54,6 +54,10 @@ func (Null) Handshake(conn net.Conn, meta zmtp.Metadata) (
 		return nil, nil, fmt.Errorf("%w: received %s", ErrNotReady, cmd.Name)
 	}
 
+	if err := verifier.VerifyMetadata(zmtp.Metadata(cmd.Body)); err != nil {
+		return nil, nil, err
+	}
+
 	return NullSocket{conn}, zmtp.Metadata(cmd.Body), nil
 }
 
@@ -65,7 +69,17 @@ func (notReady) Error() string {
 
 var ErrNotReady notReady
 
-func (n Null) SetOption(string, string) {}
+type noOptions struct{}
+
+func (noOptions) Error() string {
+	return "No options on null sockets"
+}
+
+var ErrNoOptions noOptions
+
+func (n Null) SetOption(string, any) error {
+	return ErrNoOptions
+}
 
 type NullSocket struct {
 	net.Conn

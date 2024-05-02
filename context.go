@@ -40,7 +40,7 @@ func (c *Context) getTransport(name string) (transport.Transport, bool) {
 	return nil, false
 }
 
-func (c *Context) NewSocket(typ string, mech string) (*Socket, error) {
+func (c *Context) NewSocket(typ string, mechStr string) (*Socket, error) {
 	sock := &Socket{}
 
 	constructor, ok := FindSocketType(typ)
@@ -48,20 +48,22 @@ func (c *Context) NewSocket(typ string, mech string) (*Socket, error) {
 		return nil, fmt.Errorf("%w: %s", ErrTypeNotFound, typ)
 	}
 
-	mechConstructor, ok := FindMechanism(mech)
+	mechConstructor, ok := FindMechanism(mechStr)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrMechanismNotFound, mech)
+		return nil, fmt.Errorf("%w: %s", ErrMechanismNotFound, mechStr)
 	}
 
 	conf := &Config{}
 	conf.Default()
-	driver, err := constructor(c.ctx, mechConstructor(), conf, PrintBus{})
+	mech := mechConstructor()
+	driver, err := constructor(c.ctx, mech, conf, PrintBus{})
 	if err != nil {
 		return nil, err
 	}
 
 	sock.driver = driver
 	sock.ctx = c
+	sock.mech = mech
 	return sock, nil
 }
 

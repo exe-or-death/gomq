@@ -14,8 +14,6 @@ type SocketHandler func(context.Context, zmtp.Socket) error
 
 type MetadataProvider func() zmtp.Metadata
 
-type MetadataHandler func(zmtp.Metadata) error
-
 type ConnectionDriver struct {
 	ctx                context.Context
 	mechanism          zmtp.Mechanism
@@ -26,7 +24,7 @@ type ConnectionDriver struct {
 	eventBus           gomq.EventBus
 	handler            SocketHandler
 	meta               MetadataProvider
-	metaHandler        MetadataHandler
+	metaHandler        zmtp.MetadataVerifier
 	cancelFunc         context.CancelFunc
 	done               chan struct{}
 	lastConnectAttempt time.Time
@@ -72,6 +70,7 @@ func (c *ConnectionDriver) TryConnect() (fatal bool, err error) {
 	greeting.SetVersionMajor(3)
 	greeting.SetVersionMinor(1)
 	greeting.SetMechanism(c.mechanism.Name())
+	greeting.SetServer(c.mechanism.Server())
 	if _, err := greeting.WriteTo(conn); err != nil {
 		c.eventBus.Post(gomq.Event{
 			gomq.EventTypeFailedGreeting,
@@ -102,18 +101,8 @@ func (c *ConnectionDriver) TryConnect() (fatal bool, err error) {
 		return false, err
 	}
 
-	sock, meta, err := c.mechanism.Handshake(conn, c.meta())
+	sock, _, err := c.mechanism.Handshake(conn, c.meta(), c.metaHandler)
 	if err != nil {
-		c.eventBus.Post(gomq.Event{
-			gomq.EventTypeFailedHandshake,
-			transport.BuildURL(conn.LocalAddr(), c.transport),
-			transport.BuildURL(conn.RemoteAddr(), c.transport),
-			err.Error(),
-		})
-		return false, err
-	}
-
-	if err := c.metaHandler(meta); err != nil {
 		c.eventBus.Post(gomq.Event{
 			gomq.EventTypeFailedHandshake,
 			transport.BuildURL(conn.LocalAddr(), c.transport),
@@ -142,7 +131,7 @@ func (c *ConnectionDriver) Setup(
 	eventBus gomq.EventBus,
 	handler SocketHandler,
 	meta MetadataProvider,
-	metaHandler MetadataHandler,
+	metaHandler zmtp.MetadataVerifier,
 ) {
 	derived, cancel := context.WithCancel(ctx)
 	c.ctx = derived

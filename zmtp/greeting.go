@@ -62,15 +62,15 @@ func (g *Greeting) SetMechanism(mech string) {
 
 // Server returns whether the greeting specifies the sender as a server.
 func (g *Greeting) Server() bool {
-	return g[33] == 1
+	return g[32] == 1
 }
 
 // SetServer sets the server flag in the greeting.
 func (g *Greeting) SetServer(server bool) {
 	if server {
-		g[33] = 1
+		g[32] = 1
 	} else {
-		g[33] = 0
+		g[32] = 0
 	}
 }
 
@@ -90,3 +90,11 @@ func (g *Greeting) ReadFrom(r io.Reader) (int64, error) {
 	n, err := io.ReadFull(r, g[:])
 	return int64(n), err
 }
+
+type mechMismatch struct{}
+
+func (mechMismatch) Error() string {
+	return "Mechanism mismatch"
+}
+
+var ErrMechMismatch mechMismatch

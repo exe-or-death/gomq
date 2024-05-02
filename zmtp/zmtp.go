@@ -13,13 +13,13 @@ type Mechanism interface {
 	ValidateGreeting(*Greeting) (err error)
 
 	// Handshake performs a handshake with the Connection.
-	Handshake(net.Conn, Metadata) (s Socket, meta Metadata, err error)
+	Handshake(net.Conn, Metadata, MetadataVerifier) (s Socket, meta Metadata, err error)
 
 	// Server field for the greeting for this handshake.
 	Server() bool
 
 	// SetOption sets an option in the mechanism.
-	SetOption(option string, value string)
+	SetOption(option string, value any) error
 }
 
 // Socket.
@@ -50,4 +50,10 @@ type CommandOrMessage struct {
 
 	// Message is non nil iff IsMessage is true.
 	Message *Message
+}
+
+// MetadataVerifier verifies Metadata.
+type MetadataVerifier interface {
+	// VerifyMetadata verifies Metadata.
+	VerifyMetadata(Metadata) error
 }

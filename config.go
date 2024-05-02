@@ -16,7 +16,7 @@ func (c *Config) Default() {
 	c.Lock()
 	defer c.Unlock()
 
-	c.reconnectTimeout = time.Second * 3
+	c.reconnectTimeout = time.Second
 	c.connectTimeout = time.Second * 3
 	c.queueLen = 1024
 }
