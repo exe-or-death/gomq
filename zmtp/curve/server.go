@@ -16,7 +16,7 @@ type CurveServer struct {
 	pubKey, privKey [32]byte
 }
 
-func (c *CurveServer) Handshake(conn net.Conn, meta zmtp.Metadata) (
+func (c *CurveServer) Handshake(conn net.Conn, meta zmtp.Metadata, verifier zmtp.MetadataVerifier) (
 	zmtp.Socket,
 	zmtp.Metadata,
 	error,
@@ -36,6 +36,10 @@ func (c *CurveServer) Handshake(conn net.Conn, meta zmtp.Metadata) (
 	clientMeta, err := c.doInitiate(&nonce, conn, &cookieKey, &clientTransPubKey, &servTransSecKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Client initiate failed: %w", err)
+	}
+
+	if err := verifier.VerifyMetadata(clientMeta); err != nil {
+		return nil, nil, err
 	}
 
 	if err := c.doReady(conn, meta, &clientTransPubKey, &servTransSecKey); err != nil {

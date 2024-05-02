@@ -34,7 +34,7 @@ func (cannotBeServer) Error() string {
 var ErrCannotBeServer cannotBeServer
 
 // Handshake performs a null mechanism handshake.
-func (Null) Handshake(conn net.Conn, meta zmtp.Metadata) (
+func (Null) Handshake(conn net.Conn, meta zmtp.Metadata, verifier zmtp.MetadataVerifier) (
 	zmtp.Socket,
 	zmtp.Metadata,
 	error,
@@ -52,6 +52,10 @@ func (Null) Handshake(conn net.Conn, meta zmtp.Metadata) (
 
 	if cmd.Name != "READY" {
 		return nil, nil, fmt.Errorf("%w: received %s", ErrNotReady, cmd.Name)
+	}
+
+	if err := verifier.VerifyMetadata(zmtp.Metadata(cmd.Body)); err != nil {
+		return nil, nil, err
 	}
 
 	return NullSocket{conn}, zmtp.Metadata(cmd.Body), nil

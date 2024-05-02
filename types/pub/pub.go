@@ -1,4 +1,4 @@
-package pull
+package pub
 
 import (
 	"context"
@@ -12,26 +12,26 @@ import (
 	"github.com/workspace-9/gomq/zmtp"
 )
 
-// Pull implements the zmq pull socket.
-type Pull struct {
+// Pub implements the zmq pub socket.
+type Pub struct {
 	context.Context
 	Cancel context.CancelFunc
 	*gomq.Config
 	Mech              zmtp.Mechanism
 	ConnectionDrivers map[string]*socketutil.ConnectionDriver
-	ConnectionHandles map[string]socketutil.WaitCloser[struct{}]
 	BindDrivers       map[string]*socketutil.BindDriver
-	ReadPoint         chan []zmtp.Message
+	ConnectionHandles map[string]socketutil.WaitCloser[struct{}]
 	EventBus          gomq.EventBus
+	WritePoint        chan []zmtp.Message
 }
 
-func (p *Pull) Name() string {
-	return "PULL"
+func (p *Pub) Name() string {
+	return "PUB"
 }
 
-func (p *Pull) Connect(tp transport.Transport, url *url.URL) error {
+func (p *Pub) Connect(tp transport.Transport, url *url.URL) error {
 	if _, ok := p.ConnectionHandles[url.String()]; ok {
-		return fmt.Errorf("%w: %s", types.ErrAlreadyConnected, url)
+		return fmt.Errorf("%w: %s", types.ErrAlreadyConnected, url.String())
 	}
 
 	var queue chan zmtp.Message
@@ -47,7 +47,7 @@ func (p *Pull) Connect(tp transport.Transport, url *url.URL) error {
 			return HandleSock(ctx, s, queue)
 		},
 		p.Meta,
-		p,
+		p.MetaHandler,
 	)
 	fatal, err := driver.TryConnect()
 	if err != nil && fatal {
@@ -55,17 +55,17 @@ func (p *Pull) Connect(tp transport.Transport, url *url.URL) error {
 	}
 	queue = make(chan zmtp.Message, p.Config.QueueLen())
 	wc := socketutil.NewWaitCloser[struct{}](p.Context)
-	go PushIntoReadPoint(&wc, queue, p.ReadPoint)
+	go PullFromWritePoint(&wc, queue, p.WritePoint)
 	p.ConnectionDrivers[url.String()] = driver
 	p.ConnectionHandles[url.String()] = wc
 	go driver.Run()
 	return nil
 }
 
-func (p *Pull) Disconnect(url *url.URL) error {
+func (p *Pub) Disconnect(url *url.URL) error {
 	driver, ok := p.ConnectionDrivers[url.String()]
 	if !ok {
-		return fmt.Errorf("%w to %s", types.ErrNeverConnected, url)
+		return fmt.Errorf("%w to %s", types.ErrNeverConnected, url.String())
 	}
 
 	delete(p.ConnectionDrivers, url.String())
@@ -75,11 +75,7 @@ func (p *Pull) Disconnect(url *url.URL) error {
 	return err
 }
 
-func (p *Pull) Bind(tp transport.Transport, url *url.URL) error {
-	if _, ok := p.BindDrivers[url.String()]; ok {
-		return fmt.Errorf("%w: %s", types.ErrAlreadyBound, url)
-	}
-
+func (p *Pub) Bind(tp transport.Transport, url *url.URL) error {
 	driver := &socketutil.BindDriver{}
 	driver.Setup(
 		p.Context,
@@ -90,12 +86,12 @@ func (p *Pull) Bind(tp transport.Transport, url *url.URL) error {
 			queue := make(chan zmtp.Message, p.Config.QueueLen())
 			wc := socketutil.NewWaitCloser[struct{}](p.Context)
 			defer wc.Finish(struct{}{})
-			go PushIntoReadPoint(&wc, queue, p.ReadPoint)
+			go PullFromWritePoint(&wc, queue, p.WritePoint)
 			return HandleSock(ctx, s, queue)
 		},
 		p.EventBus,
 		p.Meta,
-		p,
+		p.MetaHandler,
 	)
 	if err := driver.TryBind(); err != nil {
 		return err
@@ -105,7 +101,7 @@ func (p *Pull) Bind(tp transport.Transport, url *url.URL) error {
 	return nil
 }
 
-func (p *Pull) Unbind(url *url.URL) error {
+func (p *Pub) Unbind(url *url.URL) error {
 	driver, ok := p.BindDrivers[url.String()]
 	if !ok {
 		return fmt.Errorf("%w to %s", types.ErrNeverBound, url.String())
@@ -116,17 +112,14 @@ func (p *Pull) Unbind(url *url.URL) error {
 	return err
 }
 
-func PushIntoReadPoint(wc *socketutil.WaitCloser[struct{}], pull <-chan zmtp.Message, readPoint chan []zmtp.Message) {
+func PullFromWritePoint(wc *socketutil.WaitCloser[struct{}], push chan<- zmtp.Message, writePoint chan []zmtp.Message) {
 	defer wc.Finish(struct{}{})
-	built := make([]zmtp.Message, 0)
 	for {
 		select {
-		case part := <-pull:
-			built = append(built, part)
-			if !part.More {
+		case message := <-writePoint:
+			for _, part := range message {
 				select {
-				case readPoint <- built:
-					built = make([]zmtp.Message, 0)
+				case push <- part:
 				case <-wc.Done():
 					return
 				}
@@ -137,36 +130,31 @@ func PushIntoReadPoint(wc *socketutil.WaitCloser[struct{}], pull <-chan zmtp.Mes
 	}
 }
 
-func HandleSock(ctx context.Context, sock zmtp.Socket, queue chan<- zmtp.Message) (err error) {
+func HandleSock(ctx context.Context, sock zmtp.Socket, queue <-chan zmtp.Message) (err error) {
 	for {
-		next, err := sock.Read()
-		if err != nil {
-			return err
-		}
-
-		if !next.IsMessage {
-			continue
-		}
-
 		select {
-		case queue <- *next.Message:
+		case msg := <-queue:
+			if err := sock.SendMessage(msg); err != nil {
+				return err
+			}
 		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
 
-func (p *Pull) Meta() zmtp.Metadata {
+func (p *Pub) Meta() zmtp.Metadata {
 	meta := zmtp.Metadata{}
-	meta.AddProperty("Socket-Type", "PULL")
+	meta.AddProperty("Socket-Type", "PUB")
 	return meta
 }
 
-func (p *Pull) VerifyMetadata(meta zmtp.Metadata) error {
+func (p *Pub) MetaHandler(meta zmtp.Metadata) error {
 	var err error
 	meta.Properties(func(name string, value string) {
 		if name == "Socket-Type" && err == nil {
-			if value != "PUSH" {
-				err = fmt.Errorf("Expected push socket to connect, got %s", value)
+			if value != "SUB" && value != "XSUB" {
+				err = fmt.Errorf("Expected sub or xsub socket to connect, got %s", value)
 			}
 		}
 	})
@@ -174,26 +162,26 @@ func (p *Pull) VerifyMetadata(meta zmtp.Metadata) error {
 	return err
 }
 
-func (p *Pull) Send([]zmtp.Message) error {
-	return types.ErrOperationNotPermitted
-}
-
-func (p *Pull) Recv() ([]zmtp.Message, error) {
+func (p *Pub) Send(data []zmtp.Message) error {
 	select {
-	case msg := <-p.ReadPoint:
-		return msg, nil
+	case p.WritePoint <- data:
+		return nil
 	case <-p.Context.Done():
-		return nil, p.Context.Err()
+		return p.Context.Err()
 	}
 }
 
-func (p *Pull) Close() error {
+func (p *Pub) Recv() ([]zmtp.Message, error) {
+	return nil, types.ErrOperationNotPermitted
+}
+
+func (p *Pub) Close() error {
 	p.Cancel()
 	for _, conn := range p.ConnectionDrivers {
 		conn.Close()
 	}
-	for _, bind := range p.BindDrivers {
-		bind.Close()
+	for _, conn := range p.BindDrivers {
+		conn.Close()
 	}
 	return nil
 }

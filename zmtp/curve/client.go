@@ -13,7 +13,7 @@ type CurveClient struct {
 	pubKey, privKey, serverPubKey [32]byte
 }
 
-func (c *CurveClient) Handshake(conn net.Conn, meta zmtp.Metadata) (
+func (c *CurveClient) Handshake(conn net.Conn, meta zmtp.Metadata, verifier zmtp.MetadataVerifier) (
 	zmtp.Socket,
 	zmtp.Metadata,
 	error,
@@ -38,6 +38,10 @@ func (c *CurveClient) Handshake(conn net.Conn, meta zmtp.Metadata) (
 	servMeta, err := c.doReady(&nonce, conn, &servTransPub, &transPriv)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed ready: %w", err)
+	}
+
+	if err := verifier.VerifyMetadata(servMeta); err != nil {
+		return nil, nil, err
 	}
 
 	ret := &CurveSocket{nonceIdx: 3, peerNonceIdx: 1, isServ: false, Conn: conn}
